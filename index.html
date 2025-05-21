@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Controle Remoto Servo WiFi</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  h1 {
+    margin: 1rem 0 0.5rem;
+    font-weight: 600;
+    font-size: 2rem;
+    text-align: center;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  p {
+    margin: 0 0 2rem;
+    font-size: 1.1rem;
+    text-align: center;
+    max-width: 280px;
+    line-height: 1.4;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  label {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+  input[type="text"] {
+    width: 280px;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    margin-bottom: 1.5rem;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+    transition: box-shadow 0.3s ease;
+  }
+  input[type="text"]:focus {
+    box-shadow: inset 0 2px 8px rgba(100,150,255,0.8);
+  }
+  .slider-container {
+    width: 280px;
+    margin-bottom: 1rem;
+  }
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 10px;
+    border-radius: 5px;
+    background: #a78bfa;
+    outline: none;
+    transition: background 0.3s ease;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: 2px solid #6b46c1;
+    transition: background 0.3s ease;
+    margin-top: -8px;
+  }
+  input[type="range"]:focus::-webkit-slider-thumb {
+    background: #d6bcfa;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: 2px solid #6b46c1;
+    transition: background 0.3s ease;
+  }
+  input[type="range"]:focus::-moz-range-thumb {
+    background: #d6bcfa;
+  }
+  #angleValue {
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: #d6bcfa;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  button {
+    background: #6b46c1;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 0.75rem 2rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(107, 70, 193, 0.6);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+  }
+  button:hover {
+    background: #805ad5;
+    box-shadow: 0 8px 20px rgba(128, 90, 213, 0.8);
+  }
+  #status {
+    margin-top: 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+    min-height: 1.4em;
+    text-align: center;
+    color: #d6bcfa;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  footer {
+    margin-top: auto;
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+  <h1>Controle Remoto Servo WiFi</h1>
+  <p>Digite o endereço IP do módulo Wi-Fi e controle o ângulo do servo motor.</p>
+  <label for="ipAddress">Endereço IP do Módulo Wi-Fi</label>
+  <input type="text" id="ipAddress" placeholder="ex: 192.168.4.1" />
+  <div class="slider-container">
+    <label for="angleRange">Ângulo: <span id="angleValue">90°</span></label>
+    <input type="range" id="angleRange" min="0" max="180" value="90" />
+  </div>
+  <button id="sendButton">Enviar Ângulo</button>
+  <div id="status"></div>
+  <footer>App criado para controle remoto de servo via Wi-Fi</footer>
+
+<script>
+  const ipInput = document.getElementById('ipAddress');
+  const angleRange = document.getElementById('angleRange');
+  const angleValue = document.getElementById('angleValue');
+  const sendButton = document.getElementById('sendButton');
+  const statusDiv = document.getElementById('status');
+
+  angleRange.addEventListener('input', () => {
+    angleValue.textContent = angleRange.value + '°';
+  });
+
+  async function sendAngle() {
+    const ip = ipInput.value.trim();
+    const angle = angleRange.value;
+
+    if (!ip) {
+      statusDiv.textContent = 'Por favor, insira o endereço IP do módulo Wi-Fi.';
+      statusDiv.style.color = '#f56565'; // red
+      return;
+    }
+    
+    // Assuming the Wi-Fi module accepts HTTP GET /servo?angle=XX (customize if needed)
+    const url = `http://${ip}/servo?angle=${angle}`;
+
+    statusDiv.textContent = 'Enviando...';
+    statusDiv.style.color = '#d6bcfa';
+
+    try {
+      const response = await fetch(url, { method: 'GET', mode: 'no-cors' });
+      // mode no-cors because many Wi-Fi modules don't set CORS headers.
+      // can't read response, so just assume success if no error.
+      
+      statusDiv.textContent = `Ângulo ${angle}° enviado com sucesso!`;
+      statusDiv.style.color = '#48bb78'; // green
+    } catch (error) {
+      statusDiv.textContent = 'Erro ao enviar o comando. Verifique a conexão e o IP.';
+      statusDiv.style.color = '#f56565'; // red
+      console.error(error);
+    }
+  }
+
+  sendButton.addEventListener('click', sendAngle);
+
+  // Optional: Send angle when slider changes automatically (debounced)
+  let debounceTimeout;
+  angleRange.addEventListener('change', () => {
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(sendAngle, 500);
+  });
+</script>
+</body>
+</html>
